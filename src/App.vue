@@ -1,12 +1,31 @@
-<script setup lang="ts">
-import { ref } from 'vue'
+<script setup>
+import { computed, ref } from 'vue'
+import ProductList from './components/ProductList.vue'
+import ProductPage from './components/ProductPage.vue'
+import productsJson from './data/products.json'
+
+const products = ref(productsJson)
+
+const selectedProductId = ref(null)
+
+const selectedProduct = computed(() => {
+  return products.value.find((product) => product.id === selectedProductId.value) || null
+})
+
+function selectProduct(id) {
+  selectedProductId.value = id
+}
+
+function closeProduct() {
+  selectedProductId.value = null
+}
 
 const homeTeam = ref('Динамо')
 const awayTeam = ref('Спартак')
 const homeScore = ref(3)
 const awayScore = ref(2)
 
-function addGoal(team: 'home' | 'away') {
+function addGoal(team) {
   if (team === 'home') homeScore.value++
   else awayScore.value++
 }
@@ -24,6 +43,22 @@ const colors = ref({
 </script>
 
 <template>
+  <div class="shop">
+    <h1>Список товаров</h1>
+
+    <ProductPage
+      v-if="selectedProduct"
+      :product="selectedProduct"
+      @close="closeProduct"
+    />
+
+    <ProductList
+      :products="products"
+      :selected-product-id="selectedProductId"
+      @select-product="selectProduct"
+    />
+  </div>
+
   <div class="match">
     <h1>{{ homeTeam }} — {{ awayTeam }}</h1>
     <p class="score">{{ homeScore }} : {{ awayScore }}</p>
@@ -62,6 +97,13 @@ const colors = ref({
 </template>
 
 <style scoped>
+.shop {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
 .match { 
   text-align: center; 
   margin-top: 2rem; 
@@ -69,11 +111,13 @@ const colors = ref({
   margin-left: auto;
   margin-right: auto;
 }
+
 .score { 
   font-size: 2.5rem; 
   font-weight: bold; 
   margin: 0.5rem 0; 
 }
+
 .lineup {
   display: flex;
   justify-content: space-around;
@@ -83,31 +127,38 @@ const colors = ref({
   border-radius: 8px;
   margin-bottom: 2rem;
 }
+
 .team-players {
   text-align: left;
   width: 45%;
 }
+
 .team-players h3 {
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
   color: #333;
 }
+
 .team-players ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+
 .team-players li {
   padding: 0.25rem 0;
   font-size: 0.95rem;
   border-bottom: 1px dashed #ddd;
 }
+
 .team-players li:last-child {
   border-bottom: none;
 }
+
 .controls {
   margin-top: 2rem;
 }
+
 button { 
   margin: 0 0.5rem; 
   padding: 0.5rem 1rem; 
@@ -117,6 +168,7 @@ button {
   border-radius: 4px;
   font-size: 1rem;
 }
+
 button:hover {
   background: #35966a;
 }
