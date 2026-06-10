@@ -6,37 +6,45 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['back', 'order'])
 </script>
 
 <template>
   <div class="product-page">
-    <button class="close-button" @click="emit('close')">
-      Закрыть товар
+    <button class="back-button" @click="emit('back')">
+      Назад к товарам
     </button>
 
-    <div class="product-content">
+    <div class="product">
       <img
         :src="product.image"
         :alt="product.title"
-        class="product-page-image"
+        class="product-image"
       >
 
-      <div class="product-details">
-        <p class="product-category">{{ product.category }}</p>
+      <div class="product-info">
+        <p class="category">
+          {{ product.category }}
+        </p>
 
-        <h2>{{ product.title }}</h2>
+        <h1>{{ product.title }}</h1>
 
-        <p class="product-price">${{ product.price }}</p>
+        <p class="price">
+          ${{ product.price }}
+        </p>
 
-        <p class="product-rating">
+        <p v-if="product.rating" class="rating">
           ⭐ Рейтинг: {{ product.rating.rate }} / 5
           <span>({{ product.rating.count }} отзывов)</span>
         </p>
 
-        <p class="product-description">
+        <p class="description">
           {{ product.description }}
         </p>
+
+        <button class="order-button" @click="emit('order')">
+          Оформить заказ
+        </button>
       </div>
     </div>
   </div>
@@ -44,80 +52,73 @@ const emit = defineEmits(['close'])
 
 <style scoped>
 .product-page {
-  margin-top: 1.5rem;
+  background: #fff;
   padding: 1.5rem;
   border-radius: 12px;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
 }
 
-.close-button {
+.back-button {
   margin-bottom: 1rem;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   border: none;
-  background: #e74c3c;
+  background: #6b7280;
   color: #fff;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
-.close-button:hover {
-  background: #c0392b;
-}
-
-.product-content {
+.product {
   display: flex;
   gap: 2rem;
-  align-items: flex-start;
 }
 
-.product-page-image {
-  width: 240px;
-  height: 260px;
+.product-image {
+  width: 300px;
+  height: 350px;
   object-fit: contain;
-  background: #fff;
-  border-radius: 8px;
-  padding: 1rem;
 }
 
-.product-details {
-  text-align: left;
+.product-info {
+  flex: 1;
 }
 
-.product-category {
+.category {
   display: inline-block;
-  padding: 0.25rem 0.6rem;
-  background: #42b983;
-  color: #fff;
+  padding: 0.3rem 0.7rem;
+  background: #e0f2fe;
+  color: #0369a1;
   border-radius: 20px;
-  font-size: 0.85rem;
 }
 
-.product-details h2 {
-  margin: 1rem 0;
-}
-
-.product-price {
-  font-size: 1.6rem;
+.price {
+  font-size: 2rem;
   font-weight: bold;
   color: #42b983;
 }
 
-.product-rating span {
-  color: #777;
+.description {
+  line-height: 1.6;
 }
 
-.product-description {
-  line-height: 1.5;
-  color: #333;
+.order-button {
+  padding: 0.8rem 1.2rem;
+  border: none;
+  background: #42b983;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-@media (max-width: 700px) {
-  .product-content {
+.order-button:hover {
+  background: #35966a;
+}
+
+@media (max-width: 750px) {
+  .product {
     flex-direction: column;
   }
 
-  .product-page-image {
+  .product-image {
     width: 100%;
   }
 }
