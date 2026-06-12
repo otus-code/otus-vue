@@ -1,132 +1,186 @@
-<script setup lang="ts">
-import { ref } from 'vue'
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import axios from 'axios'
 
-const homeTeam = ref('Динамо')
-const awayTeam = ref('Спартак')
-const homeScore = ref(3)
-const awayScore = ref(2)
+import AppHeader from './components/AppHeader.vue'
+import ProductList from './components/ProductList.vue'
+import ProductPage from './components/ProductPage.vue'
+import OrderForm from './components/OrderForm.vue'
+import CreateProductForm from './components/CreateProductForm.vue'
 
-function addGoal(team: 'home' | 'away') {
-  if (team === 'home') homeScore.value++
-  else awayScore.value++
+const products = ref([])
+const loading = ref(false)
+const error = ref('')
+
+const currentPage = ref('home')
+const selectedProduct = ref(null)
+
+const filters = ref({
+  title: '',
+  minPrice: '',
+  maxPrice: ''
+})
+
+const notification = ref('')
+
+const filteredProducts = computed(() => {
+  return products.value.filter((product) => {
+    const title = product.title.toLowerCase()
+    const searchTitle = filters.value.title.toLowerCase()
+
+    const productPrice = Number(product.price)
+    const minPrice = filters.value.minPrice ? Number(filters.value.minPrice) : null
+    const maxPrice = filters.value.maxPrice ? Number(filters.value.maxPrice) : null
+
+    const matchesTitle = title.includes(searchTitle)
+
+    const matchesMinPrice = minPrice === null || productPrice >= minPrice
+    const matchesMaxPrice = maxPrice === null || productPrice <= maxPrice
+
+    return matchesTitle && matchesMinPrice && matchesMaxPrice
+  })
+})
+
+async function loadProducts() {
+  try {
+    loading.value = true
+    error.value = ''
+
+    const response = await axios.get('https://fakestoreapi.com/products')
+    products.value = response.data
+  } catch (err) {
+    error.value = 'Не удалось загрузить товары'
+  } finally {
+    loading.value = false
+  }
 }
 
-// состав Динамо, Спартак
-const squadDynamo = ref(['Сметанин', 'Штанюк', 'Кобелев', 'Точилин', 'Терехин'])
-const squadSpartak = ref(['Черчесов', 'Хлестов', 'Цымбаларь', 'Евсеев', 'Ширко'])
+function openProduct(product) {
+  selectedProduct.value = product
+  currentPage.value = 'product'
+}
 
-const showLineup = ref(true)
+function goHome() {
+  currentPage.value = 'home'
+  selectedProduct.value = null
+}
 
-const colors = ref({
-  default: '#ffffff',
-  hover: '#ffeb3b'
+function goToCreateProduct() {
+  currentPage.value = 'createProduct'
+}
+
+function goToOrder() {
+  currentPage.value = 'order'
+}
+
+function addNewProduct(product) {
+  products.value.unshift(product)
+  notification.value = 'Товар успешно создан'
+  currentPage.value = 'home'
+
+  setTimeout(() => {
+    notification.value = ''
+  }, 3000)
+}
+
+function orderSuccess() {
+  notification.value = 'Заказ успешно оформлен'
+  currentPage.value = 'home'
+  selectedProduct.value = null
+
+  setTimeout(() => {
+    notification.value = ''
+  }, 3000)
+}
+
+onMounted(() => {
+  loadProducts()
 })
 </script>
 
 <template>
-  <div class="match">
-    <h1>{{ homeTeam }} — {{ awayTeam }}</h1>
-    <p class="score">{{ homeScore }} : {{ awayScore }}</p>
-    
-    <div v-show="showLineup" class="lineup">
-      <div class="team-players">
-        <h3>{{ homeTeam }}</h3>
-        <ul>
-          <li v-for="playerD in squadDynamo" :key="playerD">{{ playerD }}</li>
-        </ul>
+  <div class="app">
+    <AppHeader
+      v-model:title="filters.title"
+      v-model:min-price="filters.minPrice"
+      v-model:max-price="filters.maxPrice"
+      @home="goHome"
+      @create-product="goToCreateProduct"
+      @order="goToOrder"
+    />
+
+    <main class="container">
+      <div v-if="notification" class="notification">
+        {{ notification }}
       </div>
-      <div class="team-players">
-        <h3>{{ awayTeam }}</h3>
-        <ul>
-          <li v-for="playerS in squadSpartak" :key="playerS">{{ playerS }}</li>
-        </ul>
-      </div>
-    </div>
-  
-    <div class="controls">
-      <button @click="addGoal('home')">+1 {{ homeTeam }}</button>
-      <button @click="addGoal('away')">+1 {{ awayTeam }}</button>
-      
-      <button 
-        @click="showLineup = !showLineup"
-        :style="{
-          '--text-default': colors.default,
-          '--text-hover': colors.hover
-        }"
-        class="hover-target"
-      >
-        {{ showLineup ? '🙈 Скрыть' : '👁️ Показать' }} составы
-      </button>
-    </div>
+
+      <section v-if="currentPage === 'home'">
+        <h1>Интернет-магазин</h1>
+
+        <p v-if="loading">
+          Загрузка товаров...
+        </p>
+
+        <p v-if="error" class="error">
+          {{ error }}
+        </p>
+
+        <ProductList
+          v-if="!loading && !error"
+          :products="filteredProducts"
+          @select-product="openProduct"
+        />
+      </section>
+
+      <section v-if="currentPage === 'product' && selectedProduct">
+        <ProductPage
+          :product="selectedProduct"
+          @back="goHome"
+          @order="goToOrder"
+        />
+      </section>
+
+      <section v-if="currentPage === 'order'">
+        <OrderForm
+          :product="selectedProduct"
+          @success="orderSuccess"
+          @back="goHome"
+        />
+      </section>
+
+      <section v-if="currentPage === 'createProduct'">
+        <CreateProductForm
+          @created="addNewProduct"
+          @back="goHome"
+        />
+      </section>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.match { 
-  text-align: center; 
-  margin-top: 2rem; 
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+.app {
+  min-height: 100vh;
+  background: #f4f6f8;
 }
-.score { 
-  font-size: 2.5rem; 
-  font-weight: bold; 
-  margin: 0.5rem 0; 
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
 }
-.lineup {
-  display: flex;
-  justify-content: space-around;
-  margin: 1.5rem 0;
+
+.notification {
   padding: 1rem;
-  background: #f8f9fa;
+  margin-bottom: 1rem;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
   border-radius: 8px;
-  margin-bottom: 2rem;
-}
-.team-players {
-  text-align: left;
-  width: 45%;
-}
-.team-players h3 {
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-.team-players ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.team-players li {
-  padding: 0.25rem 0;
-  font-size: 0.95rem;
-  border-bottom: 1px dashed #ddd;
-}
-.team-players li:last-child {
-  border-bottom: none;
-}
-.controls {
-  margin-top: 2rem;
-}
-button { 
-  margin: 0 0.5rem; 
-  padding: 0.5rem 1rem; 
-  cursor: pointer;
-  background: #42b983;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-button:hover {
-  background: #35966a;
 }
 
-.hover-target {
-  color: var(--text-default);
-  transition: color 0.3s ease;
-}
-
-.hover-target:hover {
-  color: var(--text-hover);
+.error {
+  color: #dc2626;
+  font-weight: bold;
 }
 </style>
