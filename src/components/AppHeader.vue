@@ -1,68 +1,43 @@
 <script setup>
-defineProps({
-  title: {
-    type: String,
-    default: ''
-  },
-  minPrice: {
-    type: [String, Number],
-    default: ''
-  },
-  maxPrice: {
-    type: [String, Number],
-    default: ''
-  }
-})
+import { useRouter } from 'vue-router'
+import { useCart } from '../composables/useCart'
+import { useAuth } from '../composables/useAuth'
 
-const emit = defineEmits([
-  'update:title',
-  'update:minPrice',
-  'update:maxPrice',
-  'home',
-  'createProduct',
-  'order'
-])
+const router = useRouter()
+const { totalCount } = useCart()
+const { isAuthenticated, logout } = useAuth()
+
+function handleLogout() {
+  logout()
+  router.push({ name: 'home' })
+}
 </script>
 
 <template>
   <header class="header">
     <div class="header-inner">
-      <button class="logo" @click="emit('home')">
+      <router-link to="/" class="logo">
         Fake Store
-      </button>
-
-      <form class="search-form" @submit.prevent>
-        <input
-          :value="title"
-          type="text"
-          placeholder="Поиск по названию"
-          @input="emit('update:title', $event.target.value)"
-        >
-
-        <input
-          :value="minPrice"
-          type="number"
-          min="0"
-          placeholder="Цена от"
-          @input="emit('update:minPrice', $event.target.value)"
-        >
-
-        <input
-          :value="maxPrice"
-          type="number"
-          min="0"
-          placeholder="Цена до"
-          @input="emit('update:maxPrice', $event.target.value)"
-        >
-      </form>
+      </router-link>
 
       <nav class="nav">
-        <button @click="emit('createProduct')">
-          Создать товар
-        </button>
+        <router-link to="/">Каталог</router-link>
 
-        <button @click="emit('order')">
-          Оформить заказ
+        <router-link :to="{ name: 'cart' }" class="cart-link">
+          Корзина
+          <span v-if="totalCount" class="cart-badge">{{ totalCount }}</span>
+        </router-link>
+
+        <router-link :to="{ name: 'createProduct' }">
+          Создать товар
+        </router-link>
+
+        <router-link v-if="!isAuthenticated" :to="{ name: 'login' }">
+          Войти
+        </router-link>
+
+        <button v-else class="logout-button" @click="handleLogout">
+          Выйти
         </button>
       </nav>
     </div>
@@ -72,69 +47,64 @@ const emit = defineEmits([
 <style scoped>
 .header {
   background: #111827;
-  color: #fff;
   padding: 1rem;
 }
 
 .header-inner {
   max-width: 1200px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 1rem;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .logo {
   font-size: 1.2rem;
   font-weight: bold;
-  background: transparent;
   color: #fff;
-  border: none;
-  cursor: pointer;
-}
-
-.search-form {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.search-form input {
-  width: 100%;
-  padding: 0.6rem;
-  border: none;
-  border-radius: 6px;
+  text-decoration: none;
 }
 
 .nav {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.nav button {
-  padding: 0.6rem 1rem;
-  border: none;
+.nav a {
+  color: #d1d5db;
+  text-decoration: none;
+  padding: 0.4rem 0.6rem;
   border-radius: 6px;
+}
+
+.nav a.router-link-active {
+  color: #fff;
+  background: #1f2937;
+}
+
+.cart-link {
+  position: relative;
+}
+
+.cart-badge {
   background: #42b983;
   color: #fff;
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+  margin-left: 0.3rem;
+}
+
+.logout-button {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  background: #ef4444;
+  color: #fff;
   cursor: pointer;
-}
-
-.nav button:hover {
-  background: #35966a;
-}
-
-@media (max-width: 850px) {
-  .header-inner {
-    grid-template-columns: 1fr;
-  }
-
-  .search-form {
-    flex-direction: column;
-  }
-
-  .nav {
-    flex-direction: column;
-  }
 }
 </style>

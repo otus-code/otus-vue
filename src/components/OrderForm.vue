@@ -1,16 +1,14 @@
 <script setup>
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import * as yup from 'yup'
+import { useCart } from '../composables/useCart'
+import { useNotification } from '../composables/useNotification'
 
-const props = defineProps({
-  product: {
-    type: Object,
-    default: null
-  }
-})
-
-const emit = defineEmits(['success', 'back'])
+const router = useRouter()
+const { items, totalPrice, clearCart } = useCart()
+const { showNotification } = useNotification()
 
 const schema = yup.object({
   fio: yup
@@ -147,182 +145,204 @@ const onSubmit = handleSubmit(async (values) => {
       cardCvv: values.cardCvv
     },
     agreement: values.agreement,
-    product: props.product
+    items: items.value.map((item) => ({
+      id: item.product.id,
+      title: item.product.title,
+      price: item.product.price,
+      quantity: item.quantity
+    })),
+    total: totalPrice.value
   }
 
   await axios.post('https://httpbin.org/post', order)
 
-  emit('success')
+  clearCart()
+  showNotification('Заказ успешно оформлен')
+  router.push({ name: 'home' })
 })
 </script>
 
 <template>
   <div class="form-page">
-    <button class="back-button" @click="emit('back')">
-      Назад
-    </button>
+    <router-link :to="{ name: 'cart' }" class="back-link">
+      Назад в корзину
+    </router-link>
 
     <h1>Оформление заказа</h1>
 
-    <div v-if="product" class="selected-product">
-      <strong>Выбранный товар:</strong> {{ product.title }} — ${{ product.price }}
-    </div>
+    <p v-if="items.length === 0" class="empty">
+      Корзина пуста.
+      <router-link to="/">Перейти в каталог</router-link>
+    </p>
 
-    <form class="form" @submit="onSubmit">
-      <h2>Данные пользователя</h2>
-
-      <label>
-        ФИО
-        <input
-          v-model="fio"
-          v-bind="fioAttrs"
-          type="text"
-          placeholder="Иванов Иван Иванович"
-        >
-        <span class="error">{{ errors.fio }}</span>
-      </label>
-
-      <label>
-        Дата рождения
-        <input
-          v-model="birthDate"
-          v-bind="birthDateAttrs"
-          type="date"
-        >
-        <span class="error">{{ errors.birthDate }}</span>
-      </label>
-
-      <label>
-        Email
-        <input
-          v-model="email"
-          v-bind="emailAttrs"
-          type="email"
-          placeholder="mail@example.com"
-        >
-        <span class="error">{{ errors.email }}</span>
-      </label>
-
-      <label>
-        Телефон
-        <input
-          v-model="phone"
-          v-bind="phoneAttrs"
-          type="tel"
-          placeholder="+79990000000"
-        >
-        <span class="error">{{ errors.phone }}</span>
-      </label>
-
-      <h2>Адрес</h2>
-
-      <label class="checkbox">
-        <input
-          v-model="needAddress"
-          v-bind="needAddressAttrs"
-          type="checkbox"
-        >
-        Ввести адрес доставки
-      </label>
-
-      <div v-if="needAddress" class="address-block">
-        <label>
-          Страна
-          <select
-            v-model="country"
-            v-bind="countryAttrs"
-          >
-            <option value="">Выберите страну</option>
-            <option value="Россия">Россия</option>
-            <option value="Беларусь">Беларусь</option>
-            <option value="Казахстан">Казахстан</option>
-            <option value="Армения">Армения</option>
-          </select>
-          <span class="error">{{ errors.country }}</span>
-        </label>
-
-        <label>
-          Город
-          <input
-            v-model="city"
-            v-bind="cityAttrs"
-            type="text"
-            placeholder="Москва"
-          >
-          <span class="error">{{ errors.city }}</span>
-        </label>
-
-        <label>
-          Улица
-          <input
-            v-model="street"
-            v-bind="streetAttrs"
-            type="text"
-            placeholder="Ленина"
-          >
-          <span class="error">{{ errors.street }}</span>
-        </label>
-
-        <label>
-          Дом
-          <input
-            v-model="house"
-            v-bind="houseAttrs"
-            type="text"
-            placeholder="10"
-          >
-          <span class="error">{{ errors.house }}</span>
-        </label>
+    <template v-else>
+      <div class="order-summary">
+        <strong>Ваш заказ:</strong>
+        <ul>
+          <li v-for="item in items" :key="item.product.id">
+            {{ item.product.title }} × {{ item.quantity }} —
+            ${{ (item.product.price * item.quantity).toFixed(2) }}
+          </li>
+        </ul>
+        <p>Итого: <strong>${{ totalPrice.toFixed(2) }}</strong></p>
       </div>
 
-      <h2>Оплата</h2>
+      <form class="form" @submit="onSubmit">
+        <h2>Данные пользователя</h2>
 
-      <label>
-        Номер карты
-        <input
-          v-model="cardNumber"
-          v-bind="cardNumberAttrs"
-          type="text"
-          placeholder="0000 0000 0000 0000"
-        >
-        <span class="error">{{ errors.cardNumber }}</span>
-      </label>
+        <label>
+          ФИО
+          <input
+            v-model="fio"
+            v-bind="fioAttrs"
+            type="text"
+            placeholder="Иванов Иван Иванович"
+          >
+          <span class="error">{{ errors.fio }}</span>
+        </label>
 
-      <label>
-        Срок действия карты
-        <input
-          v-model="cardDate"
-          v-bind="cardDateAttrs"
-          type="month"
-        >
-        <span class="error">{{ errors.cardDate }}</span>
-      </label>
+        <label>
+          Дата рождения
+          <input
+            v-model="birthDate"
+            v-bind="birthDateAttrs"
+            type="date"
+          >
+          <span class="error">{{ errors.birthDate }}</span>
+        </label>
 
-      <label>
-        CVV
-        <input
-          v-model="cardCvv"
-          v-bind="cardCvvAttrs"
-          type="password"
-          placeholder="123"
-        >
-        <span class="error">{{ errors.cardCvv }}</span>
-      </label>
+        <label>
+          Email
+          <input
+            v-model="email"
+            v-bind="emailAttrs"
+            type="email"
+            placeholder="mail@example.com"
+          >
+          <span class="error">{{ errors.email }}</span>
+        </label>
 
-      <label class="checkbox">
-        <input
-          v-model="agreement"
-          v-bind="agreementAttrs"
-          type="checkbox"
-        >
-        Я согласен с правилами обработки заказа
-      </label>
-      <span class="error">{{ errors.agreement }}</span>
+        <label>
+          Телефон
+          <input
+            v-model="phone"
+            v-bind="phoneAttrs"
+            type="tel"
+            placeholder="+79990000000"
+          >
+          <span class="error">{{ errors.phone }}</span>
+        </label>
 
-      <button class="submit-button" type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Отправка...' : 'Оформить заказ' }}
-      </button>
-    </form>
+        <h2>Адрес</h2>
+
+        <label class="checkbox">
+          <input
+            v-model="needAddress"
+            v-bind="needAddressAttrs"
+            type="checkbox"
+          >
+          Ввести адрес доставки
+        </label>
+
+        <div v-if="needAddress" class="address-block">
+          <label>
+            Страна
+            <select
+              v-model="country"
+              v-bind="countryAttrs"
+            >
+              <option value="">Выберите страну</option>
+              <option value="Россия">Россия</option>
+              <option value="Беларусь">Беларусь</option>
+              <option value="Казахстан">Казахстан</option>
+              <option value="Армения">Армения</option>
+            </select>
+            <span class="error">{{ errors.country }}</span>
+          </label>
+
+          <label>
+            Город
+            <input
+              v-model="city"
+              v-bind="cityAttrs"
+              type="text"
+              placeholder="Москва"
+            >
+            <span class="error">{{ errors.city }}</span>
+          </label>
+
+          <label>
+            Улица
+            <input
+              v-model="street"
+              v-bind="streetAttrs"
+              type="text"
+              placeholder="Ленина"
+            >
+            <span class="error">{{ errors.street }}</span>
+          </label>
+
+          <label>
+            Дом
+            <input
+              v-model="house"
+              v-bind="houseAttrs"
+              type="text"
+              placeholder="10"
+            >
+            <span class="error">{{ errors.house }}</span>
+          </label>
+        </div>
+
+        <h2>Оплата</h2>
+
+        <label>
+          Номер карты
+          <input
+            v-model="cardNumber"
+            v-bind="cardNumberAttrs"
+            type="text"
+            placeholder="0000 0000 0000 0000"
+          >
+          <span class="error">{{ errors.cardNumber }}</span>
+        </label>
+
+        <label>
+          Срок действия карты
+          <input
+            v-model="cardDate"
+            v-bind="cardDateAttrs"
+            type="month"
+          >
+          <span class="error">{{ errors.cardDate }}</span>
+        </label>
+
+        <label>
+          CVV
+          <input
+            v-model="cardCvv"
+            v-bind="cardCvvAttrs"
+            type="password"
+            placeholder="123"
+          >
+          <span class="error">{{ errors.cardCvv }}</span>
+        </label>
+
+        <label class="checkbox">
+          <input
+            v-model="agreement"
+            v-bind="agreementAttrs"
+            type="checkbox"
+          >
+          Я согласен с правилами обработки заказа
+        </label>
+        <span class="error">{{ errors.agreement }}</span>
+
+        <button class="submit-button" type="submit" :disabled="isSubmitting">
+          {{ isSubmitting ? 'Отправка...' : 'Оформить заказ' }}
+        </button>
+      </form>
+    </template>
   </div>
 </template>
 
@@ -333,22 +353,31 @@ const onSubmit = handleSubmit(async (values) => {
   border-radius: 12px;
 }
 
-.back-button {
+.back-link {
+  display: inline-block;
   margin-bottom: 1rem;
   padding: 0.6rem 1rem;
-  border: none;
   background: #6b7280;
   color: #fff;
   border-radius: 6px;
-  cursor: pointer;
+  text-decoration: none;
 }
 
-.selected-product {
+.empty {
+  padding: 1rem 0;
+}
+
+.order-summary {
   padding: 1rem;
   margin-bottom: 1rem;
   background: #f0fdf4;
   border: 1px solid #86efac;
   border-radius: 8px;
+}
+
+.order-summary ul {
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
 }
 
 .form {
