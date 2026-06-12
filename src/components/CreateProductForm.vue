@@ -1,9 +1,12 @@
 <script setup>
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import * as yup from 'yup'
+import { useNotification } from '../composables/useNotification'
 
-const emit = defineEmits(['created', 'back'])
+const router = useRouter()
+const { showNotification } = useNotification()
 
 const schema = yup.object({
   title: yup
@@ -64,28 +67,19 @@ const onSubmit = handleSubmit(async (values) => {
     image: values.image
   }
 
-  const response = await axios.post('https://fakestoreapi.com/products', newProduct)
-
-  const createdProduct = {
-    ...newProduct,
-    id: response.data.id || Date.now(),
-    rating: {
-      rate: 0,
-      count: 0
-    }
-  }
+  await axios.post('https://fakestoreapi.com/products', newProduct)
 
   resetForm()
-
-  emit('created', createdProduct)
+  showNotification('Товар успешно создан')
+  router.push({ name: 'home' })
 })
 </script>
 
 <template>
   <div class="form-page">
-    <button class="back-button" @click="emit('back')">
+    <router-link to="/" class="back-link">
       Назад
-    </button>
+    </router-link>
 
     <h1>Создание нового товара</h1>
 
@@ -164,14 +158,14 @@ const onSubmit = handleSubmit(async (values) => {
   border-radius: 12px;
 }
 
-.back-button {
+.back-link {
+  display: inline-block;
   margin-bottom: 1rem;
   padding: 0.6rem 1rem;
-  border: none;
   background: #6b7280;
   color: #fff;
   border-radius: 6px;
-  cursor: pointer;
+  text-decoration: none;
 }
 
 .form {

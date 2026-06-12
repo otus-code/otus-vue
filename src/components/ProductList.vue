@@ -1,4 +1,8 @@
 <script setup>
+import { useRouter } from 'vue-router'
+import { useCart } from '../composables/useCart'
+import { useNotification } from '../composables/useNotification'
+
 defineProps({
   products: {
     type: Array,
@@ -6,7 +10,18 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['selectProduct'])
+const router = useRouter()
+const { addToCart } = useCart()
+const { showNotification } = useNotification()
+
+function openProduct(product) {
+  router.push({ name: 'product', params: { id: product.id } })
+}
+
+function handleAddToCart(product) {
+  addToCart(product)
+  showNotification('Товар добавлен в корзину')
+}
 </script>
 
 <template>
@@ -20,7 +35,7 @@ const emit = defineEmits(['selectProduct'])
         v-for="product in products"
         :key="product.id"
         class="product-card"
-        @click="emit('selectProduct', product)"
+        @click="openProduct(product)"
       >
         <img
           :src="product.image"
@@ -43,6 +58,10 @@ const emit = defineEmits(['selectProduct'])
             ⭐ {{ product.rating.rate }} / 5
             <span>({{ product.rating.count }})</span>
           </p>
+
+          <button class="add-button" @click.stop="handleAddToCart(product)">
+            Добавить в корзину
+          </button>
         </div>
       </article>
     </div>
@@ -105,5 +124,20 @@ const emit = defineEmits(['selectProduct'])
 
 .rating span {
   color: #6b7280;
+}
+
+.add-button {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: #42b983;
+  color: #fff;
+  cursor: pointer;
+}
+
+.add-button:hover {
+  background: #35966a;
 }
 </style>

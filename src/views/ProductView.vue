@@ -1,21 +1,69 @@
 <script setup>
-defineProps({
-  product: {
-    type: Object,
+import { onMounted, ref, watch } from 'vue'
+import axios from 'axios'
+import { useCart } from '../composables/useCart'
+import { useNotification } from '../composables/useNotification'
+
+const props = defineProps({
+  id: {
+    type: String,
     required: true
   }
 })
 
-const emit = defineEmits(['back', 'order'])
+const product = ref(null)
+const loading = ref(false)
+const error = ref('')
+
+const { addToCart } = useCart()
+const { showNotification } = useNotification()
+
+async function loadProduct(id) {
+  try {
+    loading.value = true
+    error.value = ''
+    product.value = null
+
+    const response = await axios.get(`https://fakestoreapi.com/products/${id}`)
+
+    if (!response.data) {
+      error.value = 'Товар не найден'
+      return
+    }
+
+    product.value = response.data
+  } catch {
+    error.value = 'Не удалось загрузить товар'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleAddToCart() {
+  addToCart(product.value)
+  showNotification('Товар добавлен в корзину')
+}
+
+onMounted(() => loadProduct(props.id))
+
+watch(() => props.id, (newId) => loadProduct(newId))
 </script>
 
 <template>
   <div class="product-page">
-    <button class="back-button" @click="emit('back')">
+    <router-link to="/" class="back-link">
       Назад к товарам
-    </button>
+    </router-link>
 
-    <div class="product">
+    <p v-if="loading">
+      Загрузка товара...
+    </p>
+
+    <p v-if="error" class="error">
+      {{ error }}
+    </p>
+
+    <div v-if="product" class="product">
       <img
         :src="product.image"
         :alt="product.title"
@@ -42,8 +90,8 @@ const emit = defineEmits(['back', 'order'])
           {{ product.description }}
         </p>
 
-        <button class="order-button" @click="emit('order')">
-          Оформить заказ
+        <button class="order-button" @click="handleAddToCart">
+          Добавить в корзину
         </button>
       </div>
     </div>
@@ -57,14 +105,19 @@ const emit = defineEmits(['back', 'order'])
   border-radius: 12px;
 }
 
-.back-button {
+.back-link {
+  display: inline-block;
   margin-bottom: 1rem;
   padding: 0.6rem 1rem;
-  border: none;
   background: #6b7280;
   color: #fff;
   border-radius: 6px;
-  cursor: pointer;
+  text-decoration: none;
+}
+
+.error {
+  color: #dc2626;
+  font-weight: bold;
 }
 
 .product {
@@ -94,6 +147,10 @@ const emit = defineEmits(['back', 'order'])
   font-size: 2rem;
   font-weight: bold;
   color: #42b983;
+}
+
+.rating span {
+  color: #6b7280;
 }
 
 .description {
