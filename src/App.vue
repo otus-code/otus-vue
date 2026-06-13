@@ -1,8 +1,6 @@
 <script setup>
 import AppHeader from './components/AppHeader.vue'
-import { useNotification } from './composables/useNotification'
-
-const { notification } = useNotification()
+import AppNotification from './components/AppNotification.vue'
 </script>
 
 <template>
@@ -10,12 +8,10 @@ const { notification } = useNotification()
     <AppHeader />
 
     <main class="container">
-      <div v-if="notification" class="notification">
-        {{ notification }}
-      </div>
-
       <router-view />
     </main>
+
+    <AppNotification />
   </div>
 </template>
 
@@ -29,14 +25,6 @@ const { notification } = useNotification()
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
-}
-
-.notification {
-  padding: 1rem;
-  margin-bottom: 1rem;
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #10b981;
-  border-radius: 8px;
+  text-align: left;
 }
 </style>

@@ -1,11 +1,17 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import axios from 'axios'
+import { computed, ref, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useProductsStore } from '../stores/products'
 import ProductList from '../components/ProductList.vue'
 
-const products = ref([])
-const loading = ref(false)
-const error = ref('')
+const productsStore = useProductsStore()
+const { products, isLoading, error } = storeToRefs(productsStore)
+
+onMounted(() => {
+  if (products.value.length === 0) {
+    productsStore.fetchProducts()
+  }
+})
 
 const filters = ref({
   title: '',
@@ -29,22 +35,6 @@ const filteredProducts = computed(() => {
     return matchesTitle && matchesMin && matchesMax
   })
 })
-
-async function loadProducts() {
-  try {
-    loading.value = true
-    error.value = ''
-
-    const response = await axios.get('https://fakestoreapi.com/products')
-    products.value = response.data
-  } catch {
-    error.value = 'Не удалось загрузить товары'
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadProducts)
 </script>
 
 <template>
@@ -57,14 +47,12 @@ onMounted(loadProducts)
         type="text"
         placeholder="Поиск по названию"
       >
-
       <input
         v-model="filters.minPrice"
         type="number"
         min="0"
         placeholder="Цена от"
       >
-
       <input
         v-model="filters.maxPrice"
         type="number"
@@ -73,18 +61,9 @@ onMounted(loadProducts)
       >
     </form>
 
-    <p v-if="loading">
-      Загрузка товаров...
-    </p>
-
-    <p v-if="error" class="error">
-      {{ error }}
-    </p>
-
-    <ProductList
-      v-if="!loading && !error"
-      :products="filteredProducts"
-    />
+    <p v-if="isLoading">Загрузка товаров...</p>
+    <p v-else-if="error" class="error">{{ error }}</p>
+    <ProductList v-else :products="filteredProducts" />
   </section>
 </template>
 
