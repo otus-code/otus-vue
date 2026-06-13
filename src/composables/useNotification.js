@@ -1,16 +1,22 @@
 import { ref } from 'vue'
 
-const notification = ref('')
-let timeoutId = null
+// Состояние вынесено за пределы функции — общее для всего приложения
+const notifications = ref([])
+let nextId = 0
 
 export function useNotification() {
-  function showNotification(text) {
-    notification.value = text
-    clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => {
-      notification.value = ''
-    }, 3000)
+  function notify(message, type = 'info', duration = 3000) {
+    const id = nextId++
+    notifications.value.push({ id, message, type })
+
+    setTimeout(() => {
+      remove(id)
+    }, duration)
   }
 
-  return { notification, showNotification }
+  function remove(id) {
+    notifications.value = notifications.value.filter((n) => n.id !== id)
+  }
+
+  return { notifications, notify, remove }
 }

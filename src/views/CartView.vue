@@ -1,9 +1,13 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { useCart } from '../composables/useCart'
+import { storeToRefs } from 'pinia'
+import { useCartStore } from '../stores/cart'
 
 const router = useRouter()
-const { items, removeFromCart, clearCart, totalCount, totalPrice } = useCart()
+const cartStore = useCartStore()
+
+const { items, totalCount, totalPrice } = storeToRefs(cartStore)
+const { removeFromCart, increment, decrement, clearCart } = cartStore
 </script>
 
 <template>
@@ -17,24 +21,27 @@ const { items, removeFromCart, clearCart, totalCount, totalPrice } = useCart()
 
     <template v-else>
       <ul class="cart-list">
-        <li
-          v-for="item in items"
-          :key="item.product.id"
-          class="cart-item"
-        >
-          <img :src="item.product.image" :alt="item.product.title">
+        <li v-for="item in items" :key="item.id" class="cart-item">
+          <img :src="item.image" :alt="item.title">
 
           <div class="cart-item-info">
-            <router-link :to="{ name: 'product', params: { id: item.product.id } }">
-              {{ item.product.title }}
+            <router-link :to="{ name: 'product', params: { id: item.id } }">
+              {{ item.title }}
             </router-link>
-
-            <p>${{ item.product.price }} × {{ item.quantity }} шт.</p>
+            <p>${{ item.price }} за шт.</p>
           </div>
 
-          <strong>${{ (item.product.price * item.quantity).toFixed(2) }}</strong>
+          <div class="qty-controls">
+            <button @click="decrement(item.id)">−</button>
+            <span>{{ item.quantity }}</span>
+            <button @click="increment(item.id)">+</button>
+          </div>
 
-          <button class="remove-button" @click="removeFromCart(item.product.id)">
+          <strong class="cart-item-sum">
+            ${{ (item.price * item.quantity).toFixed(2) }}
+          </strong>
+
+          <button class="remove-button" @click="removeFromCart(item.id)">
             ✕
           </button>
         </li>
@@ -50,8 +57,10 @@ const { items, removeFromCart, clearCart, totalCount, totalPrice } = useCart()
           <button class="clear-button" @click="clearCart">
             Очистить корзину
           </button>
-
-          <button class="checkout-button" @click="router.push({ name: 'checkout' })">
+          <button
+            class="checkout-button"
+            @click="router.push({ name: 'checkout' })"
+          >
             Оформить заказ
           </button>
         </div>
@@ -80,7 +89,7 @@ const { items, removeFromCart, clearCart, totalCount, totalPrice } = useCart()
 
 .cart-item {
   display: grid;
-  grid-template-columns: 60px 1fr auto auto;
+  grid-template-columns: 60px 1fr auto auto auto;
   gap: 1rem;
   align-items: center;
   padding: 0.8rem;
@@ -107,6 +116,31 @@ const { items, removeFromCart, clearCart, totalCount, totalPrice } = useCart()
 .cart-item-info p {
   margin: 0.3rem 0 0;
   color: #6b7280;
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-controls button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.qty-controls button:hover {
+  background: #f0f0f0;
+}
+
+.cart-item-sum {
+  min-width: 80px;
+  text-align: right;
 }
 
 .remove-button {

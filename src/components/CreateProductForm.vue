@@ -1,47 +1,36 @@
 <script setup>
-import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import * as yup from 'yup'
+import { useProductsStore } from '../stores/products'
 import { useNotification } from '../composables/useNotification'
 
 const router = useRouter()
-const { showNotification } = useNotification()
+const productsStore = useProductsStore()
+const { notify } = useNotification()
 
 const schema = yup.object({
   title: yup
     .string()
     .required('Введите название товара')
-    .min(3, 'Название слишком короткое'),
-
+    .min(3, 'Минимум 3 символа'),
   price: yup
     .number()
     .typeError('Цена должна быть числом')
     .required('Введите цену')
-    .positive('Цена должна быть больше 0'),
-
+    .positive('Цена должна быть больше нуля'),
   description: yup
     .string()
     .required('Введите описание')
-    .min(10, 'Описание должно быть длиннее 10 символов'),
-
-  category: yup
-    .string()
-    .required('Выберите категорию'),
-
+    .min(10, 'Минимум 10 символов'),
+  category: yup.string().required('Введите категорию'),
   image: yup
     .string()
     .required('Введите ссылку на изображение')
     .url('Введите корректный URL')
 })
 
-const {
-  errors,
-  handleSubmit,
-  defineField,
-  isSubmitting,
-  resetForm
-} = useForm({
+const { errors, handleSubmit, defineField, isSubmitting, resetForm } = useForm({
   validationSchema: schema,
   initialValues: {
     title: '',
@@ -58,7 +47,7 @@ const [description, descriptionAttrs] = defineField('description')
 const [category, categoryAttrs] = defineField('category')
 const [image, imageAttrs] = defineField('image')
 
-const onSubmit = handleSubmit(async (values) => {
+const onSubmit = handleSubmit((values) => {
   const newProduct = {
     title: values.title,
     price: Number(values.price),
@@ -67,36 +56,37 @@ const onSubmit = handleSubmit(async (values) => {
     image: values.image
   }
 
-  await axios.post('https://fakestoreapi.com/products', newProduct)
+  // Добавляем товар в каталог (стейт Pinia)
+  productsStore.addProduct(newProduct)
 
   resetForm()
-  showNotification('Товар успешно создан')
+  notify('Товар успешно создан', 'success')
   router.push({ name: 'home' })
 })
 </script>
 
 <template>
   <div class="form-page">
-    <router-link to="/" class="back-link">
-      Назад
+    <router-link :to="{ name: 'home' }" class="back-link">
+      Назад в каталог
     </router-link>
 
-    <h1>Создание нового товара</h1>
+    <h1>Добавить товар</h1>
 
     <form class="form" @submit="onSubmit">
       <label>
-        Название товара
+        Название
         <input
           v-model="title"
           v-bind="titleAttrs"
           type="text"
-          placeholder="Название товара"
+          placeholder="Например: Кроссовки Nike"
         >
         <span class="error">{{ errors.title }}</span>
       </label>
 
       <label>
-        Цена
+        Цена ($)
         <input
           v-model="price"
           v-bind="priceAttrs"
@@ -110,16 +100,12 @@ const onSubmit = handleSubmit(async (values) => {
 
       <label>
         Категория
-        <select
+        <input
           v-model="category"
           v-bind="categoryAttrs"
+          type="text"
+          placeholder="Например: electronics"
         >
-          <option value="">Выберите категорию</option>
-          <option value="men's clothing">men's clothing</option>
-          <option value="women's clothing">women's clothing</option>
-          <option value="jewelery">jewelery</option>
-          <option value="electronics">electronics</option>
-        </select>
         <span class="error">{{ errors.category }}</span>
       </label>
 
@@ -128,8 +114,8 @@ const onSubmit = handleSubmit(async (values) => {
         <input
           v-model="image"
           v-bind="imageAttrs"
-          type="text"
-          placeholder="https://example.com/image.png"
+          type="url"
+          placeholder="https://..."
         >
         <span class="error">{{ errors.image }}</span>
       </label>
@@ -139,7 +125,8 @@ const onSubmit = handleSubmit(async (values) => {
         <textarea
           v-model="description"
           v-bind="descriptionAttrs"
-          placeholder="Описание товара"
+          rows="4"
+          placeholder="Подробное описание товара"
         ></textarea>
         <span class="error">{{ errors.description }}</span>
       </label>
@@ -181,26 +168,34 @@ label {
 }
 
 input,
-select,
 textarea {
   padding: 0.7rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: #42b983;
 }
 
 textarea {
-  min-height: 120px;
   resize: vertical;
+  min-height: 90px;
 }
 
 .error {
   color: #dc2626;
   font-size: 0.85rem;
   font-weight: normal;
+  min-height: 1rem;
 }
 
 .submit-button {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   padding: 0.8rem 1rem;
   border: none;
   background: #42b983;
@@ -208,10 +203,15 @@ textarea {
   border-radius: 6px;
   cursor: pointer;
   font-size: 1rem;
+  transition: background 0.2s;
 }
 
 .submit-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.submit-button:hover:not(:disabled) {
+  background: #369870;
 }
 </style>
